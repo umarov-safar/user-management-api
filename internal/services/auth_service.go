@@ -13,11 +13,16 @@ import (
 
 type AuthService struct {
 	userRepository *repositories.UserRepository
+	jwtToken       *utils.JWToken
 }
 
-func NewAuthService(userRepository *repositories.UserRepository) *AuthService {
+func NewAuthService(
+	userRepository *repositories.UserRepository,
+	jwtToken *utils.JWToken,
+) *AuthService {
 	return &AuthService{
 		userRepository: userRepository,
+		jwtToken:       jwtToken,
 	}
 }
 
@@ -68,4 +73,47 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*model
 	}
 
 	return user, nil
+}
+
+func (s *AuthService) RegisterWithToken(ctx context.Context, email, password string) (*models.AuthResponse, error) {
+	user, err := s.Register(ctx, email, password)
+
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := s.jwtToken.Generate(
+		user.ID,
+		user.Email,
+		user.Role,
+		s.jwtToken.GetSecretKey(),
+		s.jwtToken.GetExpiration(),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.AuthResponse{
+		AccessToken: token,
+		User:        user,
+	}, nil
+}
+
+func (s *AuthService) LoginWithToken(ctx context.Context, email, password string) (*models.AuthResponse, error) {
+	user, err := s.Login(ctx, email, password)
+
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := s.jwtToken.Generate(user.ID, user.Email, user.Role, s.jwtToken.GetSecretKey(), s.jwtToken.GetExpiration())
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.AuthResponse{
+		AccessToken: token,
+		User:        user,
+	}, nil
 }

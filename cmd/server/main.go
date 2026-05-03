@@ -1,22 +1,23 @@
 package main
 
 import (
-	"context"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/umarov-safar/user-management-api/internal/config"
 	"github.com/umarov-safar/user-management-api/internal/database"
-	"github.com/umarov-safar/user-management-api/internal/repositories"
-	"github.com/umarov-safar/user-management-api/internal/services"
+	"github.com/umarov-safar/user-management-api/internal/routes"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
+	// loading config
 	cfg := config.LoadConfig()
-
+	log.Printf("%+v \n", cfg)
 	log.Printf("Starting server on %s:%s", cfg.ServerHost, cfg.ServerPort)
 
+	// connecting to db
 	db, err := database.NewDB(cfg)
 
 	if err != nil {
@@ -27,24 +28,15 @@ func main() {
 
 	log.Println("Connected to database")
 
-	// Testing registration
-	userRepository := repositories.NewUserRepository(db)
-	authService := services.NewAuthService(userRepository)
+	// routes registration
+	router := gin.Default()
 
-	log.Println("Services initialized")
+	routes.RegisterRoutes(router, db, cfg)
 
-	ctx := context.Background()
-	user, err := authService.Register(ctx, "test@example.com", "password123")
-	if err != nil {
-		log.Fatalf("Registration failed: %v", err)
+	log.Println("Routes registerd")
+
+	// running server
+	if err := router.Run(":" + cfg.ServerPort); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
-
-	log.Printf("User registerd successfully: %+v", user)
-
-	user, err = authService.Login(ctx, "test@example.com", "password123")
-	if err != nil {
-		log.Fatal("Login failed: %v", err)
-	}
-
-	log.Printf("User logged in successfully: %+v", user)
 }
