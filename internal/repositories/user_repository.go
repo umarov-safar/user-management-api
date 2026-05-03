@@ -37,7 +37,7 @@ func (ur *UserRepository) Create(ctx context.Context, user *models.User) error {
 func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, bio, avatar_url, 
-			role, email_verified, verified_at, created_at
+			role, email_verified, verified_at, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`

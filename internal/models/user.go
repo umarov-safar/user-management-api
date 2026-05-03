@@ -8,7 +8,7 @@ type User struct {
 	PasswordHash  string     `db:"password_hash" json:"-"`
 	FirstName     string     `db:"first_name" json:"first_name"`
 	LastName      string     `db:"last_name" json:"last_name"`
-	Bio           string     `db:"bio" json:"bio"`
+	Bio           *string    `db:"bio" json:"bio"`
 	AvatarURL     *string    `db:"avatar_url" json:"avatar_url"`
 	Role          string     `db:"role" json:"role"`
 	EmailVerified bool       `db:"email_verified" json:"email_verified"`

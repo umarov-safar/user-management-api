@@ -28,7 +28,7 @@ func LoadConfig() *Config {
 	jwtExpiretion, _ := strconv.ParseInt(getEnv("JWT_EXPIRATION", "900"), 10, 64)
 
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
+		DBHost:     getEnv("DB_HOST", "localhost2"),
 		DBPort:     getEnv("DB_PORT", "5432"),
 		DBUser:     getEnv("DB_USER", "user"),
 		DBPassword: getEnv("DB_PASSWORD", "password"),
