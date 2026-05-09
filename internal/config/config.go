@@ -20,6 +20,14 @@ type Config struct {
 
 	JWTSecret     string
 	JWTExpiration int64
+
+	EmailHost     string
+	EmailPort     string
+	EmailUser     string
+	EmailPassword string
+	EmailFrom     string
+
+	FrontendUrl string
 }
 
 func LoadConfig() *Config {
@@ -40,6 +48,14 @@ func LoadConfig() *Config {
 
 		JWTSecret:     getEnv("JWT_SECRET", "exe312;s;-31aa2[2-21]"),
 		JWTExpiration: jwtExpiretion,
+
+		EmailHost:     getEnv("EMAIL_HOST", "smt.google.com"),
+		EmailPort:     getEnv("EMAIL_PORT", "587"),
+		EmailUser:     getEnv("EMAIL_USER", "test"),
+		EmailPassword: getEnv("EMAIL_PASSWORD", "tesst"),
+		EmailFrom:     getEnv("EMAIL_FROM", "exmaple@web.com"),
+
+		FrontendUrl: getEnv("FRONTEND_URL", "localhost"),
 	}
 }
 

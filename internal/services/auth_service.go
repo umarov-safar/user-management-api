@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,17 +13,26 @@ import (
 )
 
 type AuthService struct {
-	userRepository *repositories.UserRepository
-	jwtToken       *utils.JWToken
+	userRepository       *repositories.UserRepository
+	jwtToken             *utils.JWToken
+	emailService         *EmailService
+	emailTokenRepository repositories.EmailTokenRepository
+	frontendUrl          string
 }
 
 func NewAuthService(
 	userRepository *repositories.UserRepository,
 	jwtToken *utils.JWToken,
+	emailService *EmailService,
+	emailTokenRepository *repositories.EmailTokenRepository,
+	frontendUrl string,
 ) *AuthService {
 	return &AuthService{
-		userRepository: userRepository,
-		jwtToken:       jwtToken,
+		userRepository:       userRepository,
+		jwtToken:             jwtToken,
+		emailService:         emailService,
+		emailTokenRepository: *emailTokenRepository,
+		frontendUrl:          frontendUrl,
 	}
 }
 
@@ -82,6 +92,23 @@ func (s *AuthService) RegisterWithToken(ctx context.Context, email, password str
 		return nil, err
 	}
 
+	verificationToken, err := utils.GenerateRandomToken()
+	if err != nil {
+		return nil, err
+	}
+
+	expiresAt := time.Now().Add(24 * time.Hour)
+	if err := s.emailTokenRepository.CreateToken(ctx, user.ID, verificationToken, expiresAt); err != nil {
+		return nil, err
+	}
+
+	verificationLink := fmt.Sprintf("%s/auth/verify-email?token=%s", s.frontendUrl, verificationToken)
+
+	go func() {
+		err = s.emailService.SendVerificationEmail(user.Email, verificationLink)
+		fmt.Println(err)
+	}()
+
 	token, err := s.jwtToken.Generate(
 		user.ID,
 		user.Email,
@@ -116,4 +143,29 @@ func (s *AuthService) LoginWithToken(ctx context.Context, email, password string
 		AccessToken: token,
 		User:        user,
 	}, nil
+}
+
+func (s *AuthService) VerifyEmail(ctx context.Context, token string) (*models.User, error) {
+	userID, err := s.emailTokenRepository.GetByToken(ctx, token)
+
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := s.userRepository.GetById(ctx, *userID)
+	if err != nil {
+		return nil, err
+	}
+
+	t := time.Now()
+	user.EmailVerified = true
+	user.VerifiedAt = &t
+
+	err = s.userRepository.Update(ctx, user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }

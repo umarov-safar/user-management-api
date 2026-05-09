@@ -16,7 +16,17 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB, cfg *config.Config) {
 	jwtToken := &utils.JWToken{}
 	jwtToken.SetSecretKey(cfg.JWTSecret).SetExpiration(cfg.JWTExpiration)
 
-	authService := services.NewAuthService(userRepo, jwtToken)
+	emailService := services.NewEmailService(services.EmailConfig{
+		Host:     cfg.EmailHost,
+		Port:     cfg.EmailPort,
+		User:     cfg.EmailUser,
+		Password: cfg.EmailPassword,
+		From:     cfg.EmailFrom,
+	})
+
+	emailRepo := repositories.NewEmailTokenRepository(db)
+
+	authService := services.NewAuthService(userRepo, jwtToken, emailService, emailRepo, cfg.FrontendUrl)
 
 	authHandler := handlers.NewAuthHandler(authService)
 
@@ -24,4 +34,7 @@ func RegisterRoutes(router *gin.Engine, db *sql.DB, cfg *config.Config) {
 	auth := public.Group("/auth")
 	auth.POST("/register", authHandler.Register)
 	auth.POST("/login", authHandler.Login)
+	
+	webAuth := router.Group("/auth")
+	webAuth.GET("/verify-email", authHandler.VerifyEmail)
 }
